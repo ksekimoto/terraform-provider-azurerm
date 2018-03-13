@@ -30,6 +30,9 @@ type Config struct {
 	IsCloudShell bool
 	UseMsi       bool
 	MsiEndpoint  string
+
+	// Azure Stack
+	DeploymentID string
 }
 
 func (c *Config) LoadTokensFromAzureCLI() error {

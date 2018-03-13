@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2016-03-30/compute"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
@@ -63,10 +63,17 @@ func resourceArmImage() *schema.Resource {
 							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
-						"managed_disk_id": {
+						//						"managed_disk_id": {
+						//							Type:     schema.TypeString,
+						//							Computed: true,
+						//							Optional: true,
+						//						},
+
+						"vhd": {
 							Type:     schema.TypeString,
-							Computed: true,
 							Optional: true,
+							Computed: true,
+							ForceNew: true,
 						},
 
 						"blob_uri": {
@@ -108,9 +115,16 @@ func resourceArmImage() *schema.Resource {
 							Optional: true,
 						},
 
-						"managed_disk_id": {
+						//						"managed_disk_id": {
+						//							Type:     schema.TypeString,
+						//							Optional: true,
+						//							ForceNew: true,
+						//						},
+
+						"vhd": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 
@@ -312,9 +326,9 @@ func flattenAzureRmImageOSDisk(osDisk *compute.ImageOSDisk) []interface{} {
 		if diskSizeDB := osDisk.DiskSizeGB; diskSizeDB != nil {
 			result["size_gb"] = *diskSizeDB
 		}
-		if disk := osDisk.ManagedDisk; disk != nil {
-			result["managed_disk_id"] = *disk.ID
-		}
+		//		if disk := osDisk.ManagedDisk; disk != nil {
+		//			result["managed_disk_id"] = *disk.ID
+		//		}
 		result["caching"] = string(osDisk.Caching)
 		result["os_type"] = osDisk.OsType
 		result["os_state"] = osDisk.OsState
@@ -337,9 +351,9 @@ func flattenAzureRmImageDataDisks(diskImages *[]compute.ImageDataDisk) []interfa
 				l["size_gb"] = *disk.DiskSizeGB
 			}
 			l["lun"] = *disk.Lun
-			if disk.ManagedDisk != nil {
-				l["managed_disk_id"] = *disk.ManagedDisk.ID
-			}
+			//			if disk.ManagedDisk != nil {
+			//				l["managed_disk_id"] = *disk.ManagedDisk.ID
+			//			}
 
 			result = append(result, l)
 		}
@@ -365,13 +379,13 @@ func expandAzureRmImageOsDisk(d *schema.ResourceData) (*compute.ImageOSDisk, err
 			osDisk.OsState = osState
 		}
 
-		managedDiskID := config["managed_disk_id"].(string)
-		if managedDiskID != "" {
-			managedDisk := &compute.SubResource{
-				ID: &managedDiskID,
-			}
-			osDisk.ManagedDisk = managedDisk
-		}
+		//		managedDiskID := config["managed_disk_id"].(string)
+		//		if managedDiskID != "" {
+		//			managedDisk := &compute.SubResource{
+		//				ID: &managedDiskID,
+		//			}
+		//			osDisk.ManagedDisk = managedDisk
+		//		}
 
 		blobURI := config["blob_uri"].(string)
 		osDisk.BlobURI = &blobURI
@@ -398,7 +412,7 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 	for _, diskConfig := range disks {
 		config := diskConfig.(map[string]interface{})
 
-		managedDiskID := d.Get("managed_disk_id").(string)
+		//		managedDiskID := d.Get("managed_disk_id").(string)
 		blobURI := d.Get("blob_uri").(string)
 		lun := int32(config["lun"].(int))
 
@@ -417,12 +431,12 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 			dataDisk.Caching = caching
 		}
 
-		if managedDiskID != "" {
-			managedDisk := &compute.SubResource{
-				ID: &managedDiskID,
-			}
-			dataDisk.ManagedDisk = managedDisk
-		}
+		//		if managedDiskID != "" {
+		//			managedDisk := &compute.SubResource{
+		//				ID: &managedDiskID,
+		//			}
+		//			dataDisk.ManagedDisk = managedDisk
+		//		}
 
 		dataDisks = append(dataDisks, dataDisk)
 	}

@@ -33,6 +33,10 @@ func dataSourceArmClientConfig() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"deployment_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

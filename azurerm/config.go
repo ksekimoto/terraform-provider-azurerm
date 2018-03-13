@@ -14,7 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/authorization/mgmt/2015-07-01/authorization"
 	"github.com/Azure/azure-sdk-for-go/services/automation/mgmt/2015-10-31/automation"
 	"github.com/Azure/azure-sdk-for-go/services/cdn/mgmt/2017-04-02/cdn"
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2016-03-30/compute"
 	"github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2018-02-01-preview/containerinstance"
 	"github.com/Azure/azure-sdk-for-go/services/containerregistry/mgmt/2017-10-01/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2017-09-30/containerservice"
@@ -27,17 +27,17 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
 	"github.com/Azure/azure-sdk-for-go/services/monitor/mgmt/2017-05-01-preview/insights"
 	"github.com/Azure/azure-sdk-for-go/services/mysql/mgmt/2017-04-30-preview/mysql"
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2015-06-15/network"
 	"github.com/Azure/azure-sdk-for-go/services/operationalinsights/mgmt/2015-11-01-preview/operationalinsights"
 	"github.com/Azure/azure-sdk-for-go/services/postgresql/mgmt/2017-04-30-preview/postgresql"
 	"github.com/Azure/azure-sdk-for-go/services/redis/mgmt/2016-04-01/redis"
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2016-06-01/subscriptions"
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2016-09-01/locks"
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2017-05-10/resources"
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-11-01/locks"
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-11-01/resources"
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-11-01/subscriptions"
 	"github.com/Azure/azure-sdk-for-go/services/search/mgmt/2015-08-19/search"
 	"github.com/Azure/azure-sdk-for-go/services/servicebus/mgmt/2017-04-01/servicebus"
 	"github.com/Azure/azure-sdk-for-go/services/sql/mgmt/2015-05-01-preview/sql"
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-10-01/storage"
+	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage"
 	"github.com/Azure/azure-sdk-for-go/services/trafficmanager/mgmt/2017-05-01/trafficmanager"
 	"github.com/Azure/azure-sdk-for-go/services/web/mgmt/2016-09-01/web"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -45,6 +45,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-azurerm/azs"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/authentication"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
@@ -112,18 +113,19 @@ type ArmClient struct {
 	vmClient               compute.VirtualMachinesClient
 
 	// Databases
-	mysqlConfigurationsClient      mysql.ConfigurationsClient
-	mysqlDatabasesClient           mysql.DatabasesClient
-	mysqlFirewallRulesClient       mysql.FirewallRulesClient
-	mysqlServersClient             mysql.ServersClient
-	postgresqlConfigurationsClient postgresql.ConfigurationsClient
-	postgresqlDatabasesClient      postgresql.DatabasesClient
-	postgresqlFirewallRulesClient  postgresql.FirewallRulesClient
-	postgresqlServersClient        postgresql.ServersClient
-	sqlDatabasesClient             sql.DatabasesClient
-	sqlElasticPoolsClient          sql.ElasticPoolsClient
-	sqlFirewallRulesClient         sql.FirewallRulesClient
-	sqlServersClient               sql.ServersClient
+	mysqlConfigurationsClient            mysql.ConfigurationsClient
+	mysqlDatabasesClient                 mysql.DatabasesClient
+	mysqlFirewallRulesClient             mysql.FirewallRulesClient
+	mysqlServersClient                   mysql.ServersClient
+	postgresqlConfigurationsClient       postgresql.ConfigurationsClient
+	postgresqlDatabasesClient            postgresql.DatabasesClient
+	postgresqlFirewallRulesClient        postgresql.FirewallRulesClient
+	postgresqlServersClient              postgresql.ServersClient
+	sqlDatabasesClient                   sql.DatabasesClient
+	sqlElasticPoolsClient                sql.ElasticPoolsClient
+	sqlFirewallRulesClient               sql.FirewallRulesClient
+	sqlServersClient                     sql.ServersClient
+	sqlServerAzureADAdministratorsClient sql.ServerAzureADAdministratorsClient
 
 	// KeyVault
 	keyVaultClient           keyvault.VaultsClient
@@ -277,6 +279,8 @@ func getAuthorizationToken(c *authentication.Config, oauthConfig *adal.OAuthConf
 // *ArmClient based on the Config's current settings.
 func getArmClient(c *authentication.Config) (*ArmClient, error) {
 	// detect cloud from environment
+	azs.Trace("[TRACE] getArmClient():Enter")
+	var mas bool = c.Environment == "localuser" || c.Environment == "localadmin"
 	env, envErr := azure.EnvironmentFromName(c.Environment)
 	if envErr != nil {
 		// try again with wrapped value to support readable values like german instead of AZUREGERMANCLOUD
@@ -297,7 +301,8 @@ func getArmClient(c *authentication.Config) (*ArmClient, error) {
 		skipProviderRegistration: c.SkipProviderRegistration,
 	}
 
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, c.TenantID)
+	var ep string = env.ActiveDirectoryEndpoint
+	oauthConfig, err := adal.NewOAuthConfig(mas, ep, c.TenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -310,54 +315,81 @@ func getArmClient(c *authentication.Config) (*ArmClient, error) {
 	sender := autorest.CreateSender(withRequestLogging())
 
 	// Resource Manager endpoints
-	endpoint := env.ResourceManagerEndpoint
+	azs.Trace("[TRACE] == getArmClient():Resource Manager endpoints start")
+	var endpoint string
+	if mas {
+		env.ActiveDirectoryResourceId = c.DeploymentID
+		endpoint = env.ActiveDirectoryResourceId
+	} else {
+		endpoint = env.ResourceManagerEndpoint
+	}
 	auth, err := getAuthorizationToken(c, oauthConfig, endpoint)
 	if err != nil {
+		azs.Trace("[ERROR] getAuthorizationToken():env.ResourceManagerEndpoint")
 		return nil, err
 	}
+	azs.Trace("[TRACE] == getArmClient():Resource Manager endpoints done")
 
 	// Graph Endpoints
+	azs.Trace("[TRACE] == getArmClient():Graph Endpoints start")
 	graphEndpoint := env.GraphEndpoint
 	graphAuth, err := getAuthorizationToken(c, oauthConfig, graphEndpoint)
 	if err != nil {
+		azs.Trace("[ERROR] getAuthorizationToken():env.GraphEndpoint")
 		return nil, err
 	}
+	azs.Trace("[TRACE] == getArmClient():Graph Endpoints done")
 
 	// Key Vault Endpoints
+	azs.Trace("[TRACE] == getArmClient():Key Vault Endpoints start")
 	keyVaultAuth := autorest.NewBearerAuthorizerCallback(sender, func(tenantID, resource string) (*autorest.BearerAuthorizer, error) {
 		keyVaultSpt, err := getAuthorizationToken(c, oauthConfig, resource)
 		if err != nil {
+			azs.Trace("[ERROR] getAuthorizationToken():keyVaultAuth")
 			return nil, err
 		}
 
 		return keyVaultSpt, nil
 	})
+	azs.Trace("[TRACE] == getArmClient():Key Vault Endpoints done")
 
-	client.registerAppInsightsClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerAutomationClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerAuthentication(endpoint, graphEndpoint, c.SubscriptionID, c.TenantID, auth, graphAuth, sender)
-	client.registerCDNClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerComputeClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerContainerInstanceClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerContainerRegistryClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerContainerServicesClients(endpoint, c.SubscriptionID, auth)
-	client.registerCosmosDBClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerDatabases(endpoint, c.SubscriptionID, auth, sender)
-	client.registerDNSClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerEventGridClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerEventHubClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerKeyVaultClients(endpoint, c.SubscriptionID, auth, keyVaultAuth, sender)
-	client.registerMonitorClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerNetworkingClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerOperationalInsightsClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerRedisClients(endpoint, c.SubscriptionID, auth, sender)
-	client.registerResourcesClients(endpoint, c.SubscriptionID, auth)
-	client.registerSearchClients(endpoint, c.SubscriptionID, auth)
-	client.registerServiceBusClients(endpoint, c.SubscriptionID, auth)
-	client.registerStorageClients(endpoint, c.SubscriptionID, auth)
-	client.registerTrafficManagerClients(endpoint, c.SubscriptionID, auth)
-	client.registerWebClients(endpoint, c.SubscriptionID, auth)
-
+	endpoint = env.ResourceManagerEndpoint
+	if mas {
+		azs.Trace("[DEBUG] getAuthorizationToken():registering for Azure Stack")
+		client.registerAuthentication(endpoint, graphEndpoint, c.SubscriptionID, c.TenantID, auth, graphAuth, sender)
+		client.registerComputeClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerKeyVaultClients(endpoint, c.SubscriptionID, auth, keyVaultAuth, sender)
+		client.registerNetworkingClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerResourcesClients(endpoint, c.SubscriptionID, auth)
+		client.registerStorageClients(endpoint, c.SubscriptionID, auth)
+	} else {
+		azs.Trace("[DEBUG] getAuthorizationToken():registering for Public Azure and others")
+		client.registerAppInsightsClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerAutomationClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerAuthentication(endpoint, graphEndpoint, c.SubscriptionID, c.TenantID, auth, graphAuth, sender)
+		client.registerCDNClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerComputeClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerContainerInstanceClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerContainerRegistryClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerContainerServicesClients(endpoint, c.SubscriptionID, auth)
+		client.registerCosmosDBClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerDatabases(endpoint, c.SubscriptionID, auth, sender)
+		client.registerDNSClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerEventGridClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerEventHubClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerKeyVaultClients(endpoint, c.SubscriptionID, auth, keyVaultAuth, sender)
+		client.registerMonitorClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerNetworkingClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerOperationalInsightsClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerRedisClients(endpoint, c.SubscriptionID, auth, sender)
+		client.registerResourcesClients(endpoint, c.SubscriptionID, auth)
+		client.registerSearchClients(endpoint, c.SubscriptionID, auth)
+		client.registerServiceBusClients(endpoint, c.SubscriptionID, auth)
+		client.registerStorageClients(endpoint, c.SubscriptionID, auth)
+		client.registerTrafficManagerClients(endpoint, c.SubscriptionID, auth)
+		client.registerWebClients(endpoint, c.SubscriptionID, auth)
+	}
+	azs.Trace("[TRACE] getArmClient():Exit")
 	return &client, nil
 }
 
@@ -586,6 +618,13 @@ func (c *ArmClient) registerDatabases(endpoint, subscriptionId string, auth auto
 	sqlSrvClient.Sender = sender
 	sqlSrvClient.SkipResourceProviderRegistration = c.skipProviderRegistration
 	c.sqlServersClient = sqlSrvClient
+
+	sqlADClient := sql.NewServerAzureADAdministratorsClientWithBaseURI(endpoint, subscriptionId)
+	setUserAgent(&sqlADClient.Client)
+	sqlADClient.Authorizer = auth
+	sqlADClient.Sender = sender
+	sqlADClient.SkipResourceProviderRegistration = c.skipProviderRegistration
+	c.sqlServerAzureADAdministratorsClient = sqlADClient
 }
 
 func (c *ArmClient) registerDNSClients(endpoint, subscriptionId string, auth autorest.Authorizer, sender autorest.Sender) {

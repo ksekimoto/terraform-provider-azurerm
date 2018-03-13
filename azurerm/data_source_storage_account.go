@@ -42,10 +42,10 @@ func dataSourceArmStorageAccount() *schema.Resource {
 				Computed: true,
 			},
 
-			"account_encryption_source": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			//"account_encryption_source": {
+			//	Type:     schema.TypeString,
+			//	Computed: false,
+			//},
 
 			"custom_domain": {
 				Type:     schema.TypeList,
@@ -203,17 +203,17 @@ func dataSourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) e
 			}
 		}
 
-		if encryption := props.Encryption; encryption != nil {
-			if services := encryption.Services; services != nil {
-				if blob := services.Blob; blob != nil {
-					d.Set("enable_blob_encryption", blob.Enabled)
-				}
-				if file := services.File; file != nil {
-					d.Set("enable_file_encryption", file.Enabled)
-				}
-			}
-			d.Set("account_encryption_source", string(encryption.KeySource))
-		}
+		//if encryption := props.Encryption; encryption != nil {
+		//	if services := encryption.Services; services != nil {
+		//		if blob := services.Blob; blob != nil {
+		//			d.Set("enable_blob_encryption", blob.Enabled)
+		//		}
+		//		if file := services.File; file != nil {
+		//			d.Set("enable_file_encryption", file.Enabled)
+		//		}
+		//	}
+		//	d.Set("account_encryption_source", string(encryption.KeySource))
+		//}
 
 		// Computed
 		d.Set("primary_location", props.PrimaryLocation)

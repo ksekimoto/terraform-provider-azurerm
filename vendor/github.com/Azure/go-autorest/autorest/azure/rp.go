@@ -102,7 +102,8 @@ func register(client autorest.Client, originalReq *http.Request, re RequestError
 		"subscriptionId":            autorest.Encode("path", subID),
 	}
 
-	const APIVersion = "2016-09-01"
+	//const APIVersion = "2016-09-01"
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

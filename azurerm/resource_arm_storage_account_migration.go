@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-10-01/storage"
+	//"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -49,7 +49,7 @@ func migrateStorageAccountStateV1toV2(is *terraform.InstanceState) (*terraform.I
 
 	log.Printf("[DEBUG] ARM Storage Account Attributes before Migration: %#v", is.Attributes)
 
-	is.Attributes["account_encryption_source"] = string(storage.MicrosoftStorage)
+	//is.Attributes["account_encryption_source"] = string(storage.MicrosoftStorage)
 
 	log.Printf("[DEBUG] ARM Storage Account Attributes after State Migration: %#v", is.Attributes)
 

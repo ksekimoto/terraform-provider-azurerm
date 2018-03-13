@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -31,6 +32,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/terraform-providers/terraform-provider-azurerm/azs"	
 )
 
 const (
@@ -264,6 +266,9 @@ func validateOAuthConfig(oac OAuthConfig) error {
 
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
 func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	azs.Trace("[TRACE] NewServicePrincipalTokenWithSecret():Enter")
+	azs.Debug("[DEBUG] NewServicePrincipalTokenWithSecret():id:%s", id)
+	azs.Debug("[DEBUG] NewServicePrincipalTokenWithSecret():resource:%s", resource)
 	if err := validateOAuthConfig(oauthConfig); err != nil {
 		return nil, err
 	}
@@ -276,6 +281,9 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 	if secret == nil {
 		return nil, fmt.Errorf("parameter 'secret' cannot be nil")
 	}
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
 	spt := &ServicePrincipalToken{
 		oauthConfig:      oauthConfig,
 		secret:           secret,
@@ -283,9 +291,10 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 		resource:         resource,
 		autoRefresh:      true,
 		refreshWithin:    defaultRefresh,
-		sender:           &http.Client{},
+		sender:           &http.Client{Timeout: 5 * time.Second, Transport: tr},
 		refreshCallbacks: callbacks,
 	}
+	azs.Trace("[TRACE] NewServicePrincipalTokenWithSecret():Exit")
 	return spt, nil
 }
 
@@ -489,18 +498,21 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 		return nil, err
 	}
 
-	oauthConfig, err := NewOAuthConfig(msiEndpointURL.String(), "")
+	oauthConfig, err := NewOAuthConfig(false, msiEndpointURL.String(), "")
 	if err != nil {
 		return nil, err
 	}
 
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
 	spt := &ServicePrincipalToken{
 		oauthConfig:      *oauthConfig,
 		secret:           &ServicePrincipalMSISecret{},
 		resource:         resource,
 		autoRefresh:      true,
 		refreshWithin:    defaultRefresh,
-		sender:           &http.Client{},
+		sender:           &http.Client{Timeout: 5 * time.Second, Transport: tr},
 		refreshCallbacks: callbacks,
 	}
 

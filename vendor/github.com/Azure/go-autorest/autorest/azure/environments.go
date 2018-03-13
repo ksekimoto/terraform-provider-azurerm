@@ -31,6 +31,8 @@ var environments = map[string]Environment{
 	"AZUREGERMANCLOUD":       GermanCloud,
 	"AZUREPUBLICCLOUD":       PublicCloud,
 	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud,
+	"AZURELOCALADMINCLOUD":   LocalAdminCloud,
+	"AZURELOCALUSERCLOUD":    LocalUserCloud,
 }
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
@@ -52,6 +54,7 @@ type Environment struct {
 	ServiceManagementVMDNSSuffix string `json:"serviceManagementVMDNSSuffix"`
 	ResourceManagerVMDNSSuffix   string `json:"resourceManagerVMDNSSuffix"`
 	ContainerRegistryDNSSuffix   string `json:"containerRegistryDNSSuffix"`
+	ActiveDirectoryResourceId    string `json:"activeDirectoryResourceId"`
 }
 
 var (
@@ -74,6 +77,7 @@ var (
 		ServiceManagementVMDNSSuffix: "cloudapp.net",
 		ResourceManagerVMDNSSuffix:   "cloudapp.azure.com",
 		ContainerRegistryDNSSuffix:   "azurecr.io",
+		ActiveDirectoryResourceId:    "https://management.core.windows.net/",
 	}
 
 	// USGovernmentCloud is the cloud environment for the US Government
@@ -95,6 +99,7 @@ var (
 		ServiceManagementVMDNSSuffix: "usgovcloudapp.net",
 		ResourceManagerVMDNSSuffix:   "cloudapp.windowsazure.us",
 		ContainerRegistryDNSSuffix:   "azurecr.io",
+		ActiveDirectoryResourceId:    "https://management.core.usgovcloudapi.net/",
 	}
 
 	// ChinaCloud is the cloud environment operated in China
@@ -116,6 +121,7 @@ var (
 		ServiceManagementVMDNSSuffix: "chinacloudapp.cn",
 		ResourceManagerVMDNSSuffix:   "cloudapp.azure.cn",
 		ContainerRegistryDNSSuffix:   "azurecr.io",
+		ActiveDirectoryResourceId:    "https://management.core.chinacloudapi.cn/",
 	}
 
 	// GermanCloud is the cloud environment operated in Germany
@@ -137,7 +143,54 @@ var (
 		ServiceManagementVMDNSSuffix: "azurecloudapp.de",
 		ResourceManagerVMDNSSuffix:   "cloudapp.microsoftazure.de",
 		ContainerRegistryDNSSuffix:   "azurecr.io",
+		ActiveDirectoryResourceId:    "https://management.core.cloudapi.de/",
 	}
+
+	// DeploymentID in AzureStackStampInformation.json: b21d5590-db61-4128-9e14-e0d17ba23332
+	// "https://management.ksekimoto.onmicrosoft.com/b21d5590-db61-4128-9e14-e0d17ba23332"
+	
+	LocalUserCloud = Environment{
+		Name:                         "AzureLocalUserCloud",
+		ManagementPortalURL:          "https://portal.local.azurestack.external/",
+		PublishSettingsURL:           "",
+		ServiceManagementEndpoint:    "",
+		ResourceManagerEndpoint:      "https://management.local.azurestack.external/",
+		ActiveDirectoryEndpoint:      "https://login.windows.net/ksekimoto.onmicrosoft.com/",
+		GalleryEndpoint:              "https://portal.local.azurestack.external:30015/",
+		KeyVaultEndpoint:             "https://.vault.local.azurestack.external/",
+		GraphEndpoint:                "https://graph.windows.net/",
+		StorageEndpointSuffix:        "local.azurestack.external",
+		SQLDatabaseDNSSuffix:         "",
+		TrafficManagerDNSSuffix:      "",
+		KeyVaultDNSSuffix:            ".vault.local.azurestack.external",
+		ServiceBusEndpointSuffix:     "",
+		ServiceManagementVMDNSSuffix: "",
+		ResourceManagerVMDNSSuffix:   "",
+		ContainerRegistryDNSSuffix:   "",
+		ActiveDirectoryResourceId:    "",
+	}
+	
+	LocalAdminCloud = Environment{
+		Name:                         "AzureLocalAdminCloud",
+		ManagementPortalURL:          "https://adminportal.local.azurestack.external/",
+		PublishSettingsURL:           "",
+		ServiceManagementEndpoint:    "",
+		ResourceManagerEndpoint:      "https://adminmanagement.local.azurestack.external/",
+		ActiveDirectoryEndpoint:      "https://login.windows.net/ksekimoto.onmicrosoft.com/",
+		GalleryEndpoint:              "https://adminportal.local.azurestack.external:30015/",
+		KeyVaultEndpoint:             "https://.adminvault.local.azurestack.external/",
+		GraphEndpoint:                "https://graph.windows.net/",
+		StorageEndpointSuffix:        "local.azurestack.external",
+		SQLDatabaseDNSSuffix:         "",
+		TrafficManagerDNSSuffix:      "",
+		KeyVaultDNSSuffix:            ".adminvault.local.azurestack.external",
+		ServiceBusEndpointSuffix:     "",
+		ServiceManagementVMDNSSuffix: "",
+		ResourceManagerVMDNSSuffix:   "",
+		ContainerRegistryDNSSuffix:   "",
+		ActiveDirectoryResourceId:    "",
+	}
+
 )
 
 // EnvironmentFromName returns an Environment based on the common name specified.

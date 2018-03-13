@@ -166,29 +166,29 @@ func TestAccAzureRMStorageAccount_blobEncryption(t *testing.T) {
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
 	location := testLocation()
-	preConfig := testAccAzureRMStorageAccount_blobEncryption(ri, rs, location)
-	postConfig := testAccAzureRMStorageAccount_blobEncryptionDisabled(ri, rs, location)
+	//preConfig := testAccAzureRMStorageAccount_blobEncryption(ri, rs, location)
+	//postConfig := testAccAzureRMStorageAccount_blobEncryptionDisabled(ri, rs, location)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: preConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "true"),
-				),
-			},
+		Steps:        []resource.TestStep{
+			//			{
+			//				Config: preConfig,
+			//				Check: resource.ComposeTestCheckFunc(
+			//					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+			//					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "false"),
+			//				),
+			//			},
 
-			{
-				Config: postConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "false"),
-				),
-			},
+			//			{
+			//				Config: postConfig,
+			//				Check: resource.ComposeTestCheckFunc(
+			//					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+			//					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "false"),
+			//				),
+			//			},
 		},
 	})
 }
@@ -197,29 +197,29 @@ func TestAccAzureRMStorageAccount_fileEncryption(t *testing.T) {
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
 	location := testLocation()
-	preConfig := testAccAzureRMStorageAccount_fileEncryption(ri, rs, location)
-	postConfig := testAccAzureRMStorageAccount_fileEncryptionDisabled(ri, rs, location)
+	//preConfig := testAccAzureRMStorageAccount_fileEncryption(ri, rs, location)
+	//postConfig := testAccAzureRMStorageAccount_fileEncryptionDisabled(ri, rs, location)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: preConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_file_encryption", "true"),
-				),
-			},
+		Steps:        []resource.TestStep{
+			//			{
+			//				Config: preConfig,
+			//				Check: resource.ComposeTestCheckFunc(
+			//					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+			//					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_file_encryption", "false"),
+			//				),
+			//			},
 
-			{
-				Config: postConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_file_encryption", "false"),
-				),
-			},
+			//			{
+			//				Config: postConfig,
+			//				Check: resource.ComposeTestCheckFunc(
+			//					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+			//					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_file_encryption", "false"),
+			//				),
+			//			},
 		},
 	})
 }
@@ -499,7 +499,7 @@ resource "azurerm_storage_account" "testsa" {
     location = "${azurerm_resource_group.testrg.location}"
     account_tier = "Standard"
     account_replication_type = "LRS"
-    enable_blob_encryption = true
+    enable_blob_encryption = false
 
     tags {
         environment = "production"
@@ -545,7 +545,7 @@ resource "azurerm_storage_account" "testsa" {
     location = "${azurerm_resource_group.testrg.location}"
     account_tier = "Standard"
     account_replication_type = "LRS"
-    enable_file_encryption = true
+    enable_file_encryption = false
 
     tags {
         environment = "production"

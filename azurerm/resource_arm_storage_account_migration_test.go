@@ -40,9 +40,9 @@ func TestAzureRMStorageAccountMigrateState(t *testing.T) {
 			StateVersion:    1,
 			ID:              "some_id",
 			InputAttributes: map[string]string{},
-			ExpectedAttributes: map[string]string{
-				"account_encryption_source": "Microsoft.Storage",
-			},
+			//ExpectedAttributes: map[string]string{
+			//	"account_encryption_source": "Microsoft.Storage",
+			//},
 		},
 	}
 

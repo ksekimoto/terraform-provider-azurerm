@@ -6,15 +6,17 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-10-01/storage"
+	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurerm/azs"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
 const blobStorageAccountDefaultAccessTier = "Hot"
 
 func resourceArmStorageAccount() *schema.Resource {
+	azs.Trace("[TRACE] resourceArmStorageAccount():Enter-Exit")
 	return &schema.Resource{
 		Create: resourceArmStorageAccountCreate,
 		Read:   resourceArmStorageAccountRead,
@@ -93,16 +95,16 @@ func resourceArmStorageAccount() *schema.Resource {
 				}, true),
 			},
 
-			"account_encryption_source": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  string(storage.MicrosoftStorage),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(storage.MicrosoftKeyvault),
-					string(storage.MicrosoftStorage),
-				}, true),
-				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
-			},
+			//			"account_encryption_source": {
+			//				Type:     schema.TypeString,
+			//				Optional: false,
+			//				Default:  string(storage.MicrosoftStorage),
+			//				ValidateFunc: validation.StringInSlice([]string{
+			//					string(storage.MicrosoftKeyvault),
+			//					string(storage.MicrosoftStorage),
+			//				}, true),
+			//				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+			//			},
 
 			"custom_domain": {
 				Type:     schema.TypeList,
@@ -124,17 +126,19 @@ func resourceArmStorageAccount() *schema.Resource {
 				},
 			},
 
-			"enable_blob_encryption": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-			},
+			//			"enable_blob_encryption": {
+			//				Type:     schema.TypeBool,
+			//				Optional: true,
+			//				Default:  false,
+			//				Computed: false,
+			//			},
 
-			"enable_file_encryption": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-			},
+			//			"enable_file_encryption": {
+			//				Type:     schema.TypeBool,
+			//				Optional: true,
+			//				Default:  false,
+			//				Computed: false,
+			//			},
 
 			"enable_https_traffic_only": {
 				Type:     schema.TypeBool,
@@ -220,10 +224,10 @@ func resourceArmStorageAccount() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
-
 }
 
 func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) error {
+	azs.Trace("[TRACE] resourceArmStorageAccountCreate():Enter")
 	client := meta.(*ArmClient).storageServiceClient
 
 	resourceGroupName := d.Get("resource_group_name").(string)
@@ -232,13 +236,19 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
-	enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
+	//	enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
 	enableHTTPSTrafficOnly := d.Get("enable_https_traffic_only").(bool)
 
 	accountTier := d.Get("account_tier").(string)
 	replicationType := d.Get("account_replication_type").(string)
 	storageType := fmt.Sprintf("%s_%s", accountTier, replicationType)
-	storageAccountEncryptionSource := d.Get("account_encryption_source").(string)
+	//	storageAccountEncryptionSource := d.Get("account_encryption_source").(string)
+	azs.Debug("[DEBUG] resourceGroupName: %s", resourceGroupName)
+	azs.Debug("[DEBUG] storageAccountName: %s", storageAccountName)
+	azs.Debug("[DEBUG] accountKind: %s", accountKind)
+	azs.Debug("[DEBUG] location: %s", location)
+	azs.Debug("[DEBUG] accountTier: %s", accountTier)
+	azs.Debug("[DEBUG] replicationType: %s", replicationType)
 
 	parameters := storage.AccountCreateParameters{
 		Location: &location,
@@ -248,22 +258,22 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Tags: expandTags(tags),
 		Kind: storage.Kind(accountKind),
 		AccountPropertiesCreateParameters: &storage.AccountPropertiesCreateParameters{
-			Encryption: &storage.Encryption{
-				Services: &storage.EncryptionServices{
-					Blob: &storage.EncryptionService{
-						Enabled: utils.Bool(enableBlobEncryption),
-					}},
-				KeySource: storage.KeySource(storageAccountEncryptionSource),
-			},
+			//			Encryption: &storage.Encryption{
+			//				Services: &storage.EncryptionServices{
+			//					Blob: &storage.EncryptionService{
+			//						Enabled: utils.Bool(enableBlobEncryption),
+			//					}},
+			//				KeySource: storage.KeySource(storageAccountEncryptionSource),
+			//			},
 			EnableHTTPSTrafficOnly: &enableHTTPSTrafficOnly,
 		},
 	}
 
-	if v, ok := d.GetOk("enable_file_encryption"); ok {
-		parameters.Encryption.Services.File = &storage.EncryptionService{
-			Enabled: utils.Bool(v.(bool)),
-		}
-	}
+	//	if v, ok := d.GetOk("enable_file_encryption"); ok {
+	//		parameters.Encryption.Services.File = &storage.EncryptionService{
+	//			Enabled: utils.Bool(v.(bool)),
+	//		}
+	//	}
 
 	if _, ok := d.GetOk("custom_domain"); ok {
 		parameters.CustomDomain = expandStorageAccountCustomDomain(d)
@@ -293,11 +303,13 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	select {
 	case err := <-createErr:
+		azs.Error("[ERROR] resourceArmStorageAccountCreate():Exit")
 		return fmt.Errorf(
 			"Error creating Azure Storage Account %q: %+v",
 			storageAccountName, err)
 	case account := <-createFuture:
 		if account.ID == nil {
+			azs.Trace("[ERROR] resourceArmStorageAccountCreate():Exit")
 			return fmt.Errorf("Cannot read Storage Account %q (resource group %q) ID",
 				storageAccountName, resourceGroupName)
 		}
@@ -305,6 +317,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		d.SetId(*account.ID)
 	}
 
+	azs.Trace("[TRACE] resourceArmStorageAccountCreate():Exit")
 	return resourceArmStorageAccountRead(d, meta)
 }
 
@@ -312,12 +325,14 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 // and idempotent operation for CreateOrUpdate. In particular updating all of the parameters
 // available requires a call to Update per parameter...
 func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) error {
+	azs.Trace("[TRACE] resourceArmStorageAccountUpdate():Enter")
 	client := meta.(*ArmClient).storageServiceClient
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
 		return err
 	}
-	storageAccountName := id.Path["storageAccounts"]
+	//	storageAccountName := id.Path["storageAccounts"]
+	storageAccountName := d.Get("name").(string)
 	resourceGroupName := id.ResourceGroup
 
 	accountTier := d.Get("account_tier").(string)
@@ -380,40 +395,40 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("tags")
 	}
 
-	if d.HasChange("enable_blob_encryption") || d.HasChange("enable_file_encryption") {
-		encryptionSource := d.Get("account_encryption_source").(string)
-
-		opts := storage.AccountUpdateParameters{
-			AccountPropertiesUpdateParameters: &storage.AccountPropertiesUpdateParameters{
-				Encryption: &storage.Encryption{
-					Services:  &storage.EncryptionServices{},
-					KeySource: storage.KeySource(encryptionSource),
-				},
-			},
-		}
-
-		if d.HasChange("enable_blob_encryption") {
-			enableEncryption := d.Get("enable_blob_encryption").(bool)
-			opts.Encryption.Services.Blob = &storage.EncryptionService{
-				Enabled: utils.Bool(enableEncryption),
-			}
-
-			d.SetPartial("enable_blob_encryption")
-		}
-
-		if d.HasChange("enable_file_encryption") {
-			enableEncryption := d.Get("enable_file_encryption").(bool)
-			opts.Encryption.Services.File = &storage.EncryptionService{
-				Enabled: utils.Bool(enableEncryption),
-			}
-			d.SetPartial("enable_file_encryption")
-		}
-
-		_, err := client.Update(resourceGroupName, storageAccountName, opts)
-		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account Encryption %q: %+v", storageAccountName, err)
-		}
-	}
+	//	if d.HasChange("enable_blob_encryption") || d.HasChange("enable_file_encryption") {
+	//		encryptionSource := d.Get("account_encryption_source").(string)
+	//
+	//		opts := storage.AccountUpdateParameters{
+	//			AccountPropertiesUpdateParameters: &storage.AccountPropertiesUpdateParameters{
+	//				Encryption: &storage.Encryption{
+	//					Services:  &storage.EncryptionServices{},
+	//					KeySource: storage.KeySource(encryptionSource),
+	//				},
+	//			},
+	//		}
+	//
+	//		if d.HasChange("enable_blob_encryption") {
+	//			enableEncryption := d.Get("enable_blob_encryption").(bool)
+	//			opts.Encryption.Services.Blob = &storage.EncryptionService{
+	//				Enabled: utils.Bool(enableEncryption),
+	//			}
+	//
+	//			d.SetPartial("enable_blob_encryption")
+	//		}
+	//
+	//		if d.HasChange("enable_file_encryption") {
+	//			enableEncryption := d.Get("enable_file_encryption").(bool)
+	//			opts.Encryption.Services.File = &storage.EncryptionService{
+	//				Enabled: utils.Bool(enableEncryption),
+	//			}
+	//			d.SetPartial("enable_file_encryption")
+	//		}
+	//
+	//		_, err := client.Update(resourceGroupName, storageAccountName, opts)
+	//		if err != nil {
+	//			return fmt.Errorf("Error updating Azure Storage Account Encryption %q: %+v", storageAccountName, err)
+	//		}
+	//	}
 
 	if d.HasChange("custom_domain") {
 		customDomain := expandStorageAccountCustomDomain(d)
@@ -446,20 +461,25 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Partial(false)
+	azs.Trace("[TRACE] resourceArmStorageAccountUpdate():Exit")
 	return nil
 }
 
 func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) error {
+	azs.Trace("[TRACE] resourceArmStorageAccountRead():Enter")
 	client := meta.(*ArmClient).storageServiceClient
 	endpointSuffix := meta.(*ArmClient).environment.StorageEndpointSuffix
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
+		azs.Error("[ERROR] resourceArmStorageAccountRead():")
 		return err
 	}
-	name := id.Path["storageAccounts"]
+	//	name := id.Path["storageAccounts"]
+	name := d.Get("name").(string)
 	resGroup := id.ResourceGroup
 
+	azs.Debug("[DEBUG] resourceArmStorageAccountRead():name:%s", name)
 	resp, err := client.GetProperties(resGroup, name)
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
@@ -496,17 +516,17 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 			}
 		}
 
-		if encryption := props.Encryption; encryption != nil {
-			if services := encryption.Services; services != nil {
-				if blob := services.Blob; blob != nil {
-					d.Set("enable_blob_encryption", blob.Enabled)
-				}
-				if file := services.File; file != nil {
-					d.Set("enable_file_encryption", file.Enabled)
-				}
-			}
-			d.Set("account_encryption_source", string(encryption.KeySource))
-		}
+		//		if encryption := props.Encryption; encryption != nil {
+		//			if services := encryption.Services; services != nil {
+		//				if blob := services.Blob; blob != nil {
+		//					d.Set("enable_blob_encryption", blob.Enabled)
+		//				}
+		//				if file := services.File; file != nil {
+		//					d.Set("enable_file_encryption", file.Enabled)
+		//				}
+		//			}
+		//			d.Set("account_encryption_source", string(encryption.KeySource))
+		//		}
 
 		// Computed
 		d.Set("primary_location", props.PrimaryLocation)
@@ -563,17 +583,20 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	flattenAndSetTags(d, resp.Tags)
 
+	azs.Trace("[TRACE] resourceArmStorageAccountRead():Exit")
 	return nil
 }
 
 func resourceArmStorageAccountDelete(d *schema.ResourceData, meta interface{}) error {
+	azs.Trace("[TRACE] resourceArmStorageAccountDelete():Enter")
 	client := meta.(*ArmClient).storageServiceClient
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
 		return err
 	}
-	name := id.Path["storageAccounts"]
+	//name := id.Path["storageAccounts"]
+	name := d.Get("name").(string)
 	resGroup := id.ResourceGroup
 
 	_, err = client.Delete(resGroup, name)
@@ -581,10 +604,12 @@ func resourceArmStorageAccountDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error issuing AzureRM delete request for storage account %q: %+v", name, err)
 	}
 
+	azs.Trace("[TRACE] resourceArmStorageAccountDelete():Exit")
 	return nil
 }
 
 func expandStorageAccountCustomDomain(d *schema.ResourceData) *storage.CustomDomain {
+	azs.Trace("[TRACE] expandStorageAccountCustomDomain():Enter")
 	domains := d.Get("custom_domain").([]interface{})
 	if domains == nil || len(domains) == 0 {
 		return &storage.CustomDomain{
@@ -595,6 +620,7 @@ func expandStorageAccountCustomDomain(d *schema.ResourceData) *storage.CustomDom
 	domain := domains[0].(map[string]interface{})
 	name := domain["name"].(string)
 	useSubDomain := domain["use_subdomain"].(bool)
+	azs.Trace("[TRACE] expandStorageAccountCustomDomain():Exit")
 	return &storage.CustomDomain{
 		Name:         utils.String(name),
 		UseSubDomain: utils.Bool(useSubDomain),
@@ -602,25 +628,30 @@ func expandStorageAccountCustomDomain(d *schema.ResourceData) *storage.CustomDom
 }
 
 func flattenStorageAccountCustomDomain(input *storage.CustomDomain) []interface{} {
+	azs.Trace("[TRACE] flattenStorageAccountCustomDomain():Enter")
 	domain := make(map[string]interface{}, 0)
 
 	domain["name"] = *input.Name
 	// use_subdomain isn't returned
 
+	azs.Trace("[TRACE] flattenStorageAccountCustomDomain():Exit")
 	return []interface{}{domain}
 }
 
 func validateArmStorageAccountName(v interface{}, k string) (ws []string, es []error) {
+	azs.Trace("[TRACE] validateArmStorageAccountName():Enter")
 	input := v.(string)
 
 	if !regexp.MustCompile(`\A([a-z0-9]{3,24})\z`).MatchString(input) {
 		es = append(es, fmt.Errorf("name can only consist of lowercase letters and numbers, and must be between 3 and 24 characters long"))
 	}
 
+	azs.Trace("[TRACE] validateArmStorageAccountName():Exit")
 	return
 }
 
 func validateArmStorageAccountType(v interface{}, k string) (ws []string, es []error) {
+	azs.Trace("[TRACE] validateArmStorageAccountType():Enter")
 	validAccountTypes := []string{"standard_lrs", "standard_zrs",
 		"standard_grs", "standard_ragrs", "premium_lrs"}
 
@@ -633,5 +664,6 @@ func validateArmStorageAccountType(v interface{}, k string) (ws []string, es []e
 	}
 
 	es = append(es, fmt.Errorf("Invalid storage account type %q", input))
+	azs.Trace("[TRACE] validateArmStorageAccountType():Exit")
 	return
 }

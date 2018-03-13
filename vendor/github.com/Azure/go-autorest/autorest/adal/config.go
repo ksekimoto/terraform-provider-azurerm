@@ -15,8 +15,10 @@ package adal
 //  limitations under the License.
 
 import (
+	"path"
 	"fmt"
 	"net/url"
+	"github.com/terraform-providers/terraform-provider-azurerm/azs"	
 )
 
 const (
@@ -45,37 +47,70 @@ func validateStringParam(param, name string) error {
 }
 
 // NewOAuthConfig returns an OAuthConfig with tenant specific urls
-func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
+func NewOAuthConfig(mas bool, activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
+	azs.Trace("[TRACE] NewOAuthConfig():Enter-Exit")
+	azs.Debug("[DEBUG] NewOAuthConfig():activeDirectoryEndpoint:%s", activeDirectoryEndpoint)
+	azs.Debug("[DEBUG] NewOAuthConfig():tenantID:%s", tenantID)
 	if err := validateStringParam(activeDirectoryEndpoint, "activeDirectoryEndpoint"); err != nil {
 		return nil, err
 	}
-	// it's legal for tenantID to be empty so don't validate it
-	const activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
-	u, err := url.Parse(activeDirectoryEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	authorityURL, err := u.Parse(tenantID)
-	if err != nil {
-		return nil, err
-	}
-	authorizeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "authorize", activeDirectoryAPIVersion))
-	if err != nil {
-		return nil, err
-	}
-	tokenURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "token", activeDirectoryAPIVersion))
-	if err != nil {
-		return nil, err
-	}
-	deviceCodeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "devicecode", activeDirectoryAPIVersion))
-	if err != nil {
-		return nil, err
-	}
+	if mas {
+		const activeDirectoryEndpointTemplate = "oauth2/%s?api-version=%s"
+		u, err := url.Parse(activeDirectoryEndpoint)
+		if err != nil {
+			return nil, err
+		}	
+		authorizeURL := *u
+		authorityURL := *u
+		tokenURL := *u
+		deviceCodeURL := *u
+		authorizeURL.Path = path.Join(u.Path, fmt.Sprintf(activeDirectoryEndpointTemplate, "authorize", activeDirectoryAPIVersion))
+		authorityURL.Path = path.Join(u.Path, fmt.Sprintf(activeDirectoryEndpointTemplate, "authorize", activeDirectoryAPIVersion))
+		tokenURL.Path = path.Join(u.Path, fmt.Sprintf(activeDirectoryEndpointTemplate, "token", activeDirectoryAPIVersion))
+		deviceCodeURL.Path = path.Join(u.Path, fmt.Sprintf(activeDirectoryEndpointTemplate, "devicecode", activeDirectoryAPIVersion))
+		azs.Debug("[DEBUG] NewOAuthConfig():authorityURL:%s", authorityURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():authorizeURL:%s", authorizeURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():tokenURL:%s", tokenURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():deviceCodeURL:%s", deviceCodeURL)
+		return &OAuthConfig{
+			AuthorityEndpoint:  authorityURL,
+			AuthorizeEndpoint:  authorizeURL,
+			TokenEndpoint:      tokenURL,
+			DeviceCodeEndpoint: deviceCodeURL,
+		}, nil
+	} else {
+		// it's legal for tenantID to be empty so don't validate it
+		const activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
+		u, err := url.Parse(activeDirectoryEndpoint)
+		if err != nil {
+			return nil, err
+		}
+		authorityURL, err := u.Parse(tenantID)
+		if err != nil {
+			return nil, err
+		}
+		authorizeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "authorize", activeDirectoryAPIVersion))
+		if err != nil {
+			return nil, err
+		}
+		tokenURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "token", activeDirectoryAPIVersion))
+		if err != nil {
+			return nil, err
+		}
+		deviceCodeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "devicecode", activeDirectoryAPIVersion))
+		if err != nil {
+			return nil, err
+		}
 
-	return &OAuthConfig{
-		AuthorityEndpoint:  *authorityURL,
-		AuthorizeEndpoint:  *authorizeURL,
-		TokenEndpoint:      *tokenURL,
-		DeviceCodeEndpoint: *deviceCodeURL,
-	}, nil
+		azs.Debug("[DEBUG] NewOAuthConfig():authorityURL:%s", authorityURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():authorizeURL:%s", authorizeURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():tokenURL:%s", tokenURL)
+		azs.Debug("[DEBUG] NewOAuthConfig():deviceCodeURL:%s", deviceCodeURL)
+		return &OAuthConfig{
+			AuthorityEndpoint:  *authorityURL,
+			AuthorizeEndpoint:  *authorizeURL,
+			TokenEndpoint:      *tokenURL,
+			DeviceCodeEndpoint: *deviceCodeURL,
+		}, nil	
+	}
 }
