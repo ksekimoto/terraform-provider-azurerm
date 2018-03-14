@@ -1,6 +1,50 @@
 AzureRM Terraform Provider
 ==================
 
+Readme
+----------------------
+
+- Did changed to use on Azure Stack Development Kit (ASDK) environment
+- Modified to meet APIVersion of Azure Stack Development Kit (ASDK) only for compute, network, and storage
+- Added two environments ("localuser" and "localadmin") as "environment" parameter and "deployment_id" parameter
+- Dropped "Encryption" for storage account and "Managed Disk" for virtual machine
+- Built an executable file (release folder) only for Windows environment
+- Tried "terraform apply" and "terraform destroy" for two use cases for Ubunts 16.04 and Windows Server 2016
+
+Using the provider
+----------------------
+
+```
+# Configure the Microsoft Azure Provider
+provider "azurerm" {
+    environment     = "localuser"
+    subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    client_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    client_secret   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    tenant_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    deployment_id   = "https://management.xxxxxxxx.onmicrosoft.com/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+- "environment" can be "localuser" or "localadmin" 
+- "deployment_id" is 
+ https://mamangement. + "tenant directory" + "/" + "DeploymentID" for "localuser" or
+ https://adminmamangement. + "tenant directory" + "/" + "DeploymentID" for "localadmin"
+- DeploymentID is described in AzureStackStampInformation.json
+
+Steps
+----------------------
+
+- Configure parameters of provider for Azure Stack Deveopment Kit (ASDK)
+- Execute "terraform init" to initialize files of plugins 
+- Overwrite "terraform-provider-azurerm.exe" on the existing AzureRM Terraform Provider executable file in ".terraform\plugins\windows_amd64"
+- Execute "terraform init"
+- Execute "terraform plan" or "terraform apply"
+
+
+AzureRM Terraform Provider
+==================
+
 - Website: https://www.terraform.io
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
